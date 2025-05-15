@@ -1,21 +1,51 @@
-import sympy as sp
+import streamlit as st
+import streamlit.components.v1 as components
+import time
 
-# Variável de Laplace
-s = sp.symbols('s')
+st.title("Renderizador LaTeX com botão bonitão")
 
-# Define matrizes A, B, C, D (exemplo)
-A = sp.Matrix([[0, 1], [-2, -3]])
-B = sp.Matrix([[0], [1]])
-C = sp.Matrix([[1, 0]])
-D = sp.Matrix([[0]])
+expr = st.text_input("Digite a expressão LaTeX (sem cifrões):", r"\frac{d^2 f}{dx^2}")
 
-# Identidade
-I = sp.eye(A.shape[0])
+if "abrir_latex" not in st.session_state:
+    st.session_state.abrir_latex = False
 
-# Função de Transferência G(s)
-G = C * (s*I - A).inv() * B + D
+if expr:
+    st.latex(expr)
 
-# Simplifica a FT
-G_simplificada = sp.simplify(G[0])
+    if st.button("🔍 Abrir em tela cheia para print"):
+        st.session_state.abrir_latex = True
 
-print(G_simplificada)
+    # Se flag ativada, injeta JS e reseta flag
+    if st.session_state.abrir_latex:
+        safe_expr = expr.replace("\\", "\\\\").replace('"', '\\"')
+        nonce = int(time.time() * 1000)
+
+        components.html(f"""
+        <script>
+            const win = window.open("", "_blank_{nonce}");
+            win.document.write(`<!DOCTYPE html>
+                <html>
+                <head>
+                    <style>
+                        body {{
+                            background: white;
+                            display: flex;
+                            justify-content: center;
+                            align-items: center;
+                            height: 100vh;
+                            font-size: 2.5em;
+                        }}
+                    </style>
+                    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"><\\/script>
+                    <script id="MathJax-script" async
+                        src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"><\\/script>
+                </head>
+                <body>
+                    $$ {safe_expr} $$
+                </body>
+                </html>`);
+            win.document.close();
+        </script>
+        """, height=0)
+
+        st.session_state.abrir_latex = False

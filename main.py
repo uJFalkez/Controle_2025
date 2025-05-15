@@ -219,3 +219,4 @@ class TF_Obj:
 tf = TF_Obj("theta2", "T")
 tf.bodeInit()
 tf.plot()
+
