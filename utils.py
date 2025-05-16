@@ -31,7 +31,7 @@ def load_exp_page(expr_name, expr, font_size):
                 <script id="MathJax-script" async
                     src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"><\\/script>
             </head>
-            <body style='font-size:{font_size+12}px'>
+            <body style='font-size:{font_size+10}px'>
                 $$ {safe_expr} $$
             </body>
             </html>`);
