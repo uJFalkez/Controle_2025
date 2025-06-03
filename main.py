@@ -24,9 +24,9 @@ eq2 = sp.Eq(exp2, 0)
 eq3 = sp.Eq(exp3, 0)
 
 # Solução do sistema para d2x, d2theta1, d2theta2
-A, b = sp.linear_eq_to_matrix([eq1.lhs, eq2.lhs, eq3.lhs], [d2x, d2theta1, d2theta2])
+A_, b = sp.linear_eq_to_matrix([eq1.lhs, eq2.lhs, eq3.lhs], [d2x, d2theta1, d2theta2])
 
-sol = A.LUsolve(-b)
+sol = A_.LUsolve(-b)
 
 d2x_expr, d2theta1_expr, d2theta2_expr = sol[0].simplify(), sol[1].simplify(), sol[2].simplify()
 
@@ -72,151 +72,39 @@ I_matrix = sp.eye(6)
 
 s = sp.Symbol('s')
 
-G_s_ = (C_matrix*((s*I_matrix-A_num).inv()*B_num)).applyfunc(sp.simplify)
+import numpy as np
+from scipy.signal import ss2tf
 
-G_s = G_s_.applyfunc(lambda e: e.evalf(n=3, chop=True))
+# 1) Converte as matrizes Sympy para NumPy:
+A = np.array(A_num.tolist(), dtype=float)
+B = np.array(B_num.tolist(), dtype=float)
+E = np.array(E_num.tolist(), dtype=float)
+C = np.array(C_matrix.tolist(), dtype=float)
+D = np.zeros([3,3])   # D = zeros(3×3)
 
-G_x      = G_s[0], G_s[1]
-G_theta1 = G_s[2], G_s[3]
-G_theta2 = G_s[4], G_s[5]
+G_num_list = []
+for j in range(E.shape[1]):
+    # passa apenas a j-ésima coluna de E e D
+    Ej = E[:, j:j+1]
+    Dj = D[:, j:j+1]
+    num_j, den = ss2tf(A, Ej, C, Dj)
+    G_num_list.append(num_j)
 
-# Determinação das raízes da função de transferência
-positions = [x, theta1, theta2]
-inputs = [F, T]
-polos = {}
-zeros = {}
-for pos, line in zip(positions, (G_x, G_theta1, G_theta2)):
-    temp_z = {}
-    p = sp.Poly(sp.fraction(line[0])[1], s).all_roots()
-    temp_p = [r.evalf() for r in p]
-    for inp, exp in zip(inputs, line):
-        num, _ = sp.fraction(exp)
-        z = sp.Poly(num, s).all_roots()
-        temp_z.update({inp:[r.evalf() for r in z]})
-    zeros.update({pos:copy.deepcopy(temp_z)})
-    polos.update({pos:copy.deepcopy(temp_p)})
+deg_den = len(den) - 1
+D = sum(round(den[k],2) * s**(deg_den - k) for k in range(deg_den))
 
-if not SILENT:
-    for pos, item in polos.items():
-        print(f"{pos}:")
-        for i, root in enumerate(item):
-            print(f"Polo {i+1}: {root}")
-        print()
-        
-    for pos, item in zeros.items():
-        print(f"{pos}:")
-        for inp, roots in item.items():
-            print(f"{inp}:")
-            for i, root in enumerate(roots):
-                print(f"Zero {i+1}: {root}")
-            print()
-        print()
-        
+# 2) para cada entrada j e saída i, monta N_{ij}(s)
+rows = []
+for i in range(3):            # 3 saídas
+    row = []
+    for j in range(len(G_num_list)):  # 2 entradas
+        coeffs = G_num_list[j][i]     # vetor de coef s^(n) -> s^0
+        deg_num = len(coeffs) - 1
+        N = sum(round(coeffs[k],2) * s**(deg_num - k) for k in range(deg_num+1))
+        row.append(N/D)
+    rows.append(row)
 
-# Derivação da função de transferência com perturbações
-G_sw_ = (C_matrix*((s*I_matrix-A_num).inv()*E_num)).applyfunc(sp.simplify)
+G = sp.Matrix(rows).applyfunc(lambda e: e.evalf(3, chop=True))
 
-G_sw = G_sw_.applyfunc(lambda e: e.evalf(n=3, chop=True))
-
-G_xw      = G_sw[0], G_sw[1], G_sw[2]
-G_theta1w = G_sw[3], G_sw[4], G_sw[5]
-G_theta2w = G_sw[6], G_sw[7], G_sw[8]
-
-# Determinação das raízes da função de transferência com perturbações
-inputs_w = [Fp, Tp1, Tp2]
-polos_w = {}
-zeros_w = {}
-for pos, line in zip(positions, (G_xw, G_theta1w, G_theta2w)):
-    temp_z = {}
-    p = sp.Poly(sp.fraction(line[0])[1], s).all_roots()
-    temp_p = [r.evalf() for r in p]
-    for inp, exp in zip(inputs_w, line):
-        num, _ = sp.fraction(exp)
-        z = sp.Poly(num, s).all_roots()
-        temp_z.update({inp:[r.evalf() for r in z]})
-    zeros_w.update({pos:copy.deepcopy(temp_z)})
-    polos_w.update({pos:copy.deepcopy(temp_p)})
-
-if not SILENT:
-    for pos, item in polos_w.items():
-        print(f"{pos}:")
-        for i, root in enumerate(item):
-            print(f"Polo {i+1}: {root}")
-        print()
-        
-    for pos, item in zeros_w.items():
-        print(f"{pos}:")
-        for inp, roots in item.items():
-            print(f"{inp}:")
-            for i, root in enumerate(roots):
-                print(f"Zero {i+1}: {root}")
-            print()
-        print()
-        
-# Diagramas de Bode
-from scipy.signal import TransferFunction, bode
-import matplotlib.pyplot as plt
-
-class TF_Obj:
-    """
-    Essa classe inicializa as funções de transferência dependendo de qual pretende-se utilizar.
-    Parameters:
-        pos: A variável de estado respectiva da FT, deve ser "x", "theta1" ou "theta2"
-        input_: A variável de entrada respectiva da FT, deve ser "F", "T", "Fp", "Tp1" ou "Tp2"
-    """
-    def __init__(self, pos: str, input_: str):
-        pos_i = ("x", "theta1", "theta2").index(pos)
-        self.pretty_pos = ("$x$", r"$\theta_1$", r"$\theta_2$")[pos_i]
-        
-        if "p" in input_:
-            G_ = G_sw
-            temp_i = 3
-            input_i = ("Fp", "Tp1", "Tp2").index(input_)
-            self.pretty_input = ("$F_p$", r"$T_{p_1}$", r"$T_{p_2}$")[input_i]
-        else:
-            G_ = G_s
-            temp_i = 2
-            input_i = ("F", "T").index(input_)
-            self.pretty_input = ("$F$", r"$T$")[input_i]
-            
-        if pos_i == -1 or input_i == -1:
-            raise ValueError
-        
-        index_G = pos_i*temp_i + input_i
-        self.G = G_[index_G]
-
-    def bodeInit(self):
-        self.num, self.den = sp.fraction(self.G)
-        num_coeffs = sp.Poly(self.num, s).all_coeffs()
-        den_coeffs = sp.Poly(self.den, s).all_coeffs()
-
-        num_coeffs = [float(c) for c in num_coeffs]
-        den_coeffs = [float(c) for c in den_coeffs]
-
-        sys = TransferFunction(num_coeffs, den_coeffs)
-        self.w, self.mag, self.phase = bode(sys)
-
-    def plot(self):
-        plt.figure(figsize=(12, 6))
-
-        # Magnitude
-        plt.subplot(2, 1, 1)
-        plt.semilogx(self.w, self.mag)
-        plt.title(f'Diagrama de Bode (Relação {self.pretty_pos} vs {self.pretty_input})')
-        plt.ylabel('Magnitude (dB)')
-        plt.grid(True)
-
-        # Fase
-        plt.subplot(2, 1, 2)
-        plt.semilogx(self.w, self.phase)
-        plt.ylabel('Fase (graus)')
-        plt.xlabel('Frequência (rad/s)')
-        plt.grid(True)
-
-        plt.tight_layout()
-        plt.show()
-        
-tf = TF_Obj("theta2", "T")
-tf.bodeInit()
-tf.plot()
+print(sp.latex(G))
 
