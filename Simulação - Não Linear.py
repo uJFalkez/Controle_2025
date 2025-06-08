@@ -94,9 +94,9 @@ sol = A.LUsolve(b)
 ddx_expr, ddtheta1_expr, ddtheta2_expr = sol[0], sol[1], sol[2]
 
 subs_dict = {
-    L: 0.1,
-    m: 0.3,
-    M: 0.6,
+    L: 0.3,
+    m: 0.15,
+    M: 0.3,
     g: 9.81
 }
 
@@ -123,9 +123,9 @@ def ode_func(t, X):
 from scipy.integrate import solve_ivp
 
 PI = sp.pi
-X0 = [0, 10, 0, 0, 0, 0]  # ajuste como quiser
+X0 = [0, 0, 0, 5, 0, 0]  # ajuste como quiser
 
-t_final = 10
+t_final = 100
 t_eval = np.linspace(0, t_final, 10000)
 
 sol = solve_ivp(ode_func, [0, t_final], X0, t_eval=t_eval, method='RK45', max_step=0.01)
