@@ -45,6 +45,7 @@ sol = solve_ivp(sistema, t_span, x0, t_eval=t_eval)
 for i, label in zip(range(sol.y.shape[0]), ("x", r"\dot{x}", r"\theta_1", r"\dot{\theta}_1", r"\theta_2", r"\dot{\theta}_2")):
     plt.plot(sol.t, sol.y[i], label=rf"${label}$")
 
+# Salva um dump das variáveis para a simulação 3D
 for name, series in {"x":sol.y[0], "theta1":sol.y[2], "theta2":sol.y[4]}.items():
     with open(f"3D sim/{name}.txt", 'w') as file:
         file.write(",".join(str(x) for x in series))
