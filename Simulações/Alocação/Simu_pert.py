@@ -24,6 +24,10 @@ def Controlador_AP_Pert(A, B, POLOS):
         # perturbações
         dist = np.array([dist_set[i](t) for i in range(6)])
         
+        dist[1] += -0.3*x[1]**2
+        dist[3] += -0.2*x[3]**2
+        dist[5] += -0.2*x[5]**2
+        
         dxdt = A @ x + B @ u + dist
         return dxdt
 
@@ -45,7 +49,7 @@ def Controlador_AP_Pert(A, B, POLOS):
     plt.plot(sol.t, sol.y[4], label=r'$\theta2$ (rad)')
     plt.xlabel('Tempo [s]')
     plt.ylabel('Posições')
-    plt.title('Resposta das posições do sistema não linear com realimentação de estados')
+    plt.title('Controle por Alocação de Polos + Perturbações')
     plt.grid(True)
     plt.legend()
     plt.show()

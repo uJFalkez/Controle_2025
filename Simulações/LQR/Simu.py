@@ -1,11 +1,14 @@
 import numpy as np
 from scipy.linalg import solve_continuous_are
 
-from Matrizes import *
-
 def Controlador_LQR(A, B):
-    Q = np.eye(A.shape[0])  # Peso unitário para todos os estados
-    R = np.eye(B.shape[1])  # Peso unitário para todas as entradas de controle
+    # Regra de Bryson: Q_ii = 1/x_ii², R_jj = 1/u_jj²
+    max_states = 1.5, 2, 1, 1, 1, 1
+    max_inputs = 0.8, 1
+    
+    Q = np.diag([1/m**2 for m in max_states])
+    
+    R = np.diag([1/n**2 for n in max_inputs])
 
     # Resolve a equação de Riccati contínua
     P = solve_continuous_are(A, B, Q, R)
@@ -41,13 +44,8 @@ def Controlador_LQR(A, B):
     for i, label in zip(range(sol.y.shape[0]), ("x", r"\dot{x}", r"\theta_1", r"\dot{\theta}_1", r"\theta_2", r"\dot{\theta}_2")):
         plt.plot(sol.t, sol.y[i], label=rf"${label}$")
 
-    # Salva um dump das variáveis para a simulação 3D
-    for name, series in {"x":sol.y[0], "theta1":sol.y[2], "theta2":sol.y[4]}.items():
-        with open(f"3D sim/{name}.txt", 'w') as file:
-            file.write(",".join(str(x) for x in series))
-
     plt.legend()
     plt.xlabel('Tempo (s)')
     plt.ylabel('Estados')
-    plt.title('Resposta do sistema com controle LQR')
+    plt.title('Controle LQR')
     plt.show()

@@ -18,12 +18,13 @@ def Observador_OR(A, B, C, K_LQR):
     B1 = B[measured_idx, :]
     B2 = B[unmeasured_idx, :]
 
-    # Polos para observador reduzido (escolha poles mais rápidos que controlador)
+    # Polos para observador reduzido
     observer_poles_reduced = np.array([-5, -6+7.5j, -6-7.5j])
     place_obj = place_poles(A22.T, A12.T, observer_poles_reduced)
     L_or = place_obj.gain_matrix.T  # 3x3
 
     # Variável global para armazenar y anterior para diferença finita
+    global y_prev, t_prev
     y_prev = None
     t_prev = None
 
@@ -78,23 +79,21 @@ def Observador_OR(A, B, C, K_LQR):
     t_span = (0, 5)
     t_eval = np.linspace(t_span[0], t_span[1], 1000)
 
-    # Reset variáveis globais antes da simulação
-    y_prev = None
-    t_prev = None
-
     sol = solve_ivp(system, t_span, z0, t_eval=t_eval, vectorized=False)
 
     # ajusta as soluções pros valores reais
 
     # Plot dos estados reais e estimados das velocidades (não medidas)
     plt.figure(figsize=(12, 6))
-    for i, idx_real in enumerate(unmeasured_idx):
-        plt.plot(sol.t, sol.y[idx_real, :], label=f'Real x{idx_real+1} (velocidade)')
-        plt.plot(sol.t, sol.y[6 + i, :], '--', label=f'Estimado x{idx_real+1} (velocidade)')
+    for i, label in enumerate([r"$dx$", r"$\dot{\theta}_1$", r"$\dot{\theta}_2$"]):
+        plt.plot(sol.t, sol.y[i*2+1, :], label=label)
+        
+    for i, label in enumerate([r"$dx$ obs.", r"$\dot{\theta}_1$ obs.", r"$\dot{\theta}_2$ obs"]):
+        plt.plot(sol.t, sol.y[i+6, :], linestyle=":", label=label)
 
     plt.xlabel('Tempo [s]')
     plt.ylabel('Velocidade')
-    plt.title('Observador de ordem reduzida: estados reais e estimados')
+    plt.title('Estados reais vs estimados pelo observador de ordem reduzida')
     plt.legend()
     plt.grid()
     plt.show()

@@ -1,6 +1,6 @@
 import sympy as sp
 import numpy as np
-import Matrizes as MTx
+import Valores_numéricos as MTx
 
 # Derivação das funções de transferência
 C_matrix = sp.Matrix([[1,0,0,0,0,0],

@@ -36,7 +36,7 @@ def Controlador_AP(A, B, POLOS):
     plt.plot(sol.t, sol.y[4], label=r'$\theta2$ (rad)')
     plt.xlabel('Tempo [s]')
     plt.ylabel('Posições')
-    plt.title('Resposta das posições do sistema não linear com realimentação de estados')
+    plt.title('Controle por Alocação de Polos')
     plt.grid(True)
     plt.legend()
     plt.show()

@@ -11,6 +11,8 @@ def Observador_Trivial(A, B, C, K_LQR, POLOS):
     place_obj = place_poles(A.T, C.T, observer_poles)
     L_id = place_obj.gain_matrix.T
 
+    #print(L_id)
+
     # Sistema aumentado: estado real + estimativa
     def augmented_system(t, z):
         n = A.shape[0]
@@ -43,12 +45,18 @@ def Observador_Trivial(A, B, C, K_LQR, POLOS):
 
     # Plot resultados
     plt.figure(figsize=(12, 6))
-    for i in [0, 2, 4]:  # estados medidos
-        plt.plot(sol.t, sol.y[i, :], label=f'Real x{i+1}')
-        plt.plot(sol.t, sol.y[i + A.shape[0], :], '--', label=f'Estimado x{i+1}')
+    #for i, label in enumerate([r"$dx$", r"$\dot{\theta}_1$", r"$\dot{\theta}_2$"]):
+    #    plt.plot(sol.t, sol.y[i*2+1, :], label=label)
+        
+    #for i, label in enumerate([r"$dx$ obs.", r"$\dot{\theta}_1$ obs.", r"$\dot{\theta}_2$ obs"]):
+    #    plt.plot(sol.t, sol.y[i+6, :], linestyle=":", label=label)
+    
+    for i in range(9):
+        plt.plot(sol.t, sol.y[i*2+1, :], label=f"x[{i}]")
+    
     plt.xlabel('Tempo [s]')
     plt.ylabel('Estado')
-    plt.title('Estados reais vs estimados pelo observador')
+    plt.title('Estados reais vs estimados pelo observador trivial')
     plt.legend()
     plt.grid(True)
     plt.show()
