@@ -2,7 +2,7 @@ import numpy as np
 from scipy.integrate import solve_ivp
 import matplotlib.pyplot as plt
 
-def Seguidor_Pert(A, B, C, L_or, K_LQR):
+def Seguidor(A, B, C, L_or, K_LQR, plot=True):
     # índices dos estados medidos e não medidos
     meas = [0,2,4]
     unm  = [1,3,5]
@@ -68,7 +68,7 @@ def Seguidor_Pert(A, B, C, L_or, K_LQR):
         return np.hstack([dx, dxu_hat])
 
     # iniciais
-    x0    = np.array([0.1,0,0.05,0,np.pi,5])
+    x0 = np.array([1, -2, 1, 1, 1, 1])
     xu0   = np.zeros(3)
     z0    = np.hstack([x0, xu0])
 
@@ -81,17 +81,18 @@ def Seguidor_Pert(A, B, C, L_or, K_LQR):
     sol.y[2] += np.pi/4
     sol.y[4] += np.pi/2
 
-    # plota só as velocidades (estados não medidos) reais vs estimadas
-    plt.figure(figsize=(10,5))
+    if plot:
+        plt.figure(figsize=(10,5))
+        
+        plt.axhline(x_ref[0], color='black', linestyle=':', label=r'$x$ ref')
+        plt.axhline(x_ref[2]+np.pi/4, color='black', linestyle=':', label=r'$\theta_1$ ref')
+        plt.axhline(x_ref[4]+np.pi/2, color='black', linestyle=':', label=r'$\theta_2$ eq')
 
-    plt.axhline(x_ref[0], color='gray', linestyle=':', label=r'$x$ ref')
-    plt.axhline(x_ref[2]+np.pi/4, color='black', linestyle=':', label=r'$\theta_1$ ref')
-
-    for idx, label in enumerate([r"$x$", r"$\theta_1$", r"$\theta_2$"]):
-        plt.plot(sol.t, sol.y[idx*2], label=f'{label}')
-    plt.xlabel('Tempo (s)')
-    plt.ylabel('Posições (m ou rad)')
-    plt.title('Seguidor de Referência + Observador OR + LQR')
-    plt.legend()
-    plt.grid(True)
-    plt.show()
+        for i, label in enumerate([r"$x$", r"$\theta_1$", r"$\theta_2$"]):
+            plt.plot(sol.t, sol.y[i*2], label=f'{label}')
+        plt.xlabel('Tempo (s)')
+        plt.ylabel('Posições (m ou rad)')
+        plt.title('LQR + OR + Modelos Assumidos')
+        plt.legend()
+        plt.grid(True)
+        plt.show()

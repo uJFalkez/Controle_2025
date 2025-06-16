@@ -2,7 +2,7 @@ import numpy as np
 from scipy.integrate import solve_ivp
 import matplotlib.pyplot as plt
 
-def Seguidor_Pert(A, B, C, E, L_or, K_LQR):
+def Seguidor_Pert(A, B, C, E, L_or, K_LQR, plot=True):
     # índices dos estados medidos e não medidos
     meas = [0,2,4]
     unm  = [1,3,5]
@@ -32,7 +32,7 @@ def Seguidor_Pert(A, B, C, E, L_or, K_LQR):
     t_eval = np.linspace(*t_span, 1000)
 
     # Perturbações
-    dist_vals = np.random.uniform(-0.2, 0.2, size=(3, len(t_eval)))
+    dist_vals = np.random.uniform(-0.05, 0.05, size=(3, len(t_eval)))
 
     from scipy.interpolate import interp1d
     dist_set = [interp1d(t_eval, dist_vals[i], kind='zero', fill_value='extrapolate') for i in range(3)]
@@ -64,9 +64,9 @@ def Seguidor_Pert(A, B, C, E, L_or, K_LQR):
         # perturbações
         dist = np.array([dist_set[i](t) for i in range(3)])
         
-        #dist[0] += -0.03*x[1]**2
-        #dist[1] += -0.02*x[3]**2
-        #dist[2] += -0.02*x[5]**2
+        dist[0] += -0.002*x[1]**2
+        dist[1] += -0.005*x[3]**2
+        dist[2] += -0.005*x[5]**2
         
         # dinâmica real
         dx     = A @ x + B @ u + E @ dist
@@ -81,7 +81,7 @@ def Seguidor_Pert(A, B, C, E, L_or, K_LQR):
         return np.hstack([dx, dxu_hat])
 
     # iniciais
-    x0    = np.array([0.1,0,0.05,0,np.pi,5])
+    x0    = np.array([1, -2, 1, 1, 1, 1])
     xu0   = np.zeros(3)
     z0    = np.hstack([x0, xu0])
 
@@ -94,31 +94,38 @@ def Seguidor_Pert(A, B, C, E, L_or, K_LQR):
     sol.y[2] += np.pi/4
     sol.y[4] += np.pi/2
 
-    # plota só as velocidades (estados não medidos) reais vs estimadas
-    fig, (plotx, plotdx) = plt.subplots(2, 1, figsize=(14, 5))  # 1 linha, 2 colunas
+    mean_error_t1 = sum([abs(e-np.pi) for e in sol.y[2][250:]])/750
+    mean_error_t2 = sum([abs(e-np.pi/2) for e in sol.y[4][250:]])/750
+    print("\nSem correção")
+    print(f"Erro médio para theta_1:", mean_error_t1)
+    print(f"Erro médio para theta_2:", mean_error_t2)
 
-    for idx, label in enumerate([r"$x$", r"$\theta_1$", r"$\theta_2$"]):
-        plotx.plot(sol.t, sol.y[idx*2], label=f'{label}')
+    if plot:
+        # plota só as velocidades (estados não medidos) reais vs estimadas
+        plt.figure(figsize=(14,9))
+        for idx, label in enumerate([r"$x$", r"$\theta_1$", r"$\theta_2$"]):
+            plt.plot(sol.t, sol.y[idx*2], label=label)
+        plt.axhline(x_ref[0], color='gray', linestyle=':', label=r'$x$ ref')
+        plt.axhline(x_ref[2]+np.pi/4, color='black', linestyle=':', label=r'$\theta_1$ ref')
+        plt.axhline(x_ref[4]+np.pi/2, color='black', linestyle=':', label=r'$\theta_2$ eq')
+        plt.xlabel('Tempo (s)')
+        plt.ylabel('Posições (m ou rad)')
+        plt.title('Posições: Seguidor + Observador OR + LQR + Perturbações')
+        plt.legend()
+        plt.grid(True)
+        plt.show()
+
+        # velocidades em janela separada
+        plt.figure(figsize=(14,9))
+        for idx, label in enumerate([r"$\dot{x}$", r"$\dot{\theta}_1$", r"$\dot{\theta}_2$"]):
+            plt.plot(sol.t, sol.y[idx*2+1], label=label)
+        for idx, label in enumerate([r"$\dot{x}$ est.", r"$\dot{\theta}_1$ est.", r"$\dot{\theta}_2$ est."]):
+            plt.plot(sol.t, sol.y[idx+6], linestyle=":", label=label)
+        plt.xlabel('Tempo (s)')
+        plt.ylabel('Velocidades (m ou rad)')
+        plt.title('Velocidades: Seguidor + Observador OR + LQR + Perturbações')
+        plt.legend()
+        plt.grid(True)
+        plt.show()
     
-    plotx.axhline(x_ref[0], color='gray', linestyle=':', label=r'$x$ ref')
-    plotx.axhline(x_ref[2]+np.pi/4, color='black', linestyle=':', label=r'$\theta_1$ ref')
-    plotx.set_xlabel('Tempo (s)')
-    plotx.set_ylabel('Posições (m ou rad)')
-    plotx.set_title('Posições para: Seguidor de Referência + Observador OR + LQR + Perturbações')
-    plotx.legend()
-    plotx.grid(True)
-
-    for idx, label in enumerate([r"$\dot{x}$", r"$\dot{\theta}_1$", r"$\dot{\theta}_2$"]):
-        plotdx.plot(sol.t, sol.y[idx*2+1], label=f'{label}')
-
-    for idx, label in enumerate([r"$\dot{x}$ est.", r"$\dot{\theta}_1$ est.", r"$\dot{\theta}_2$ est."]):
-        plotdx.plot(sol.t, sol.y[idx+6], linestyle=":", label=f'{label}')
-        
-    plotdx.set_xlabel('Tempo (s)')
-    plotdx.set_ylabel('Velocidades (m ou rad)')
-    plotdx.set_title('Velocidades e estimativas para: Seguidor de Referência + Observador OR + LQR + Perturbações')
-    plotdx.legend()
-    plotdx.grid(True)
-    
-    plt.tight_layout()
-    plt.show()
+    return mean_error_t1, mean_error_t2

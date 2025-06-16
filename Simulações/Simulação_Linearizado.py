@@ -20,6 +20,12 @@ eq1 = sp.Eq(exp1, 0)
 eq2 = sp.Eq(exp2, 0)
 eq3 = sp.Eq(exp3, 0)
 
+print(sp.latex(eq1))
+print()
+print(sp.latex(eq2))
+print()
+print(sp.latex(eq3))
+
 A, b = sp.linear_eq_to_matrix([eq1, eq2, eq3], [d2x, d2theta1, d2theta2])
 
 sol = A.LUsolve(b)

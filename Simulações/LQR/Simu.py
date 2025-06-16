@@ -9,7 +9,7 @@ def Controlador_LQR(A, B):
     Q = np.diag([1/m**2 for m in max_states])
     
     R = np.diag([1/n**2 for n in max_inputs])
-
+    
     # Resolve a equação de Riccati contínua
     P = solve_continuous_are(A, B, Q, R)
 
@@ -30,7 +30,7 @@ def Controlador_LQR(A, B):
     x0 = np.array([1, -2, 1, 1, 1, 1])  # ajuste conforme seu sistema
 
     # Intervalo de simulação
-    t_span = (0, 5)
+    t_span = (0, 10)
     t_eval = np.linspace(t_span[0], t_span[1], 600)
 
     # Resolve a EDO
@@ -41,11 +41,19 @@ def Controlador_LQR(A, B):
     sol.y[4] += np.pi/2
 
     # Plot das variáveis de estado
-    for i, label in zip(range(sol.y.shape[0]), ("x", r"\dot{x}", r"\theta_1", r"\dot{\theta}_1", r"\theta_2", r"\dot{\theta}_2")):
-        plt.plot(sol.t, sol.y[i], label=rf"${label}$")
+    for i, label in enumerate(["x", r"\theta_1", r"\theta_2"]):
+        plt.plot(sol.t, sol.y[i*2], label=rf"${label}$")
+    
+    #for i, label in enumerate([r"\dot{x}", r"\dot{\theta}_1", r"\dot{\theta}_2"]):
+    #    plt.plot(sol.t, sol.y[i*2+1], alpha=0.5, label=rf"${label}$")
+
+    plt.axhline(y=0, alpha=0.5, color='r', linestyle='--', label=r'$x_{eq}$')
+    plt.axhline(y=np.pi/4, alpha=0.5, color='r', linestyle='--', label=r'$\theta_{1,eq}$')
+    plt.axhline(y=np.pi/2, alpha=0.5, color='r', linestyle='--', label=r'$\theta_{2,eq}$')
 
     plt.legend()
     plt.xlabel('Tempo (s)')
     plt.ylabel('Estados')
     plt.title('Controle LQR')
+    plt.grid(True)
     plt.show()

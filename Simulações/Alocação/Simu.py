@@ -7,7 +7,9 @@ def Controlador_AP(A, B, POLOS):
 
     # Matriz K do ganho para a alocação
     K = sig.place_poles(A, B, p_aloc).gain_matrix
-        
+    
+    #print("Polos de malha fechada:", np.linalg.eigvals(A - B @ K))
+    
     # Dinâmica do sistema com realimentação u = -Kx
     def system(t, x):
         u = -K @ x
@@ -15,7 +17,7 @@ def Controlador_AP(A, B, POLOS):
         return dxdt
 
     # Condição inicial (perturbação inicial pequena)
-    x0 = np.array([0, 10, 1.6, 100, 0.8, 20])
+    x0 = np.array([1, -2, 1, 1, 1, 1])
 
     # Simular de t=0s a t=5s
     t_span = (0, 5)
@@ -29,14 +31,21 @@ def Controlador_AP(A, B, POLOS):
     sol.y[4] += np.pi/2
 
     from matplotlib import pyplot as plt
-    # Plotar apenas os estados de posição: x1, x3 e x5
-    plt.figure(figsize=(10, 6))
-    plt.plot(sol.t, sol.y[0], label='$x$ (m)')
-    plt.plot(sol.t, sol.y[2], label=r'$\theta1$ (rad)')
-    plt.plot(sol.t, sol.y[4], label=r'$\theta2$ (rad)')
-    plt.xlabel('Tempo [s]')
-    plt.ylabel('Posições')
-    plt.title('Controle por Alocação de Polos')
-    plt.grid(True)
+
+    # Plot das variáveis de estado
+    for i, label in enumerate(["x", r"\theta_1", r"\theta_2"]):
+        plt.plot(sol.t, sol.y[i*2], label=rf"${label}$")
+    
+    #for i, label in enumerate([r"\dot{x}", r"\dot{\theta}_1", r"\dot{\theta}_2"]):
+    #    plt.plot(sol.t, sol.y[i*2+1], alpha=0.5, label=rf"${label}$")
+
+    plt.axhline(y=0, alpha=0.5, color='r', linestyle='--', label=r'$x_{eq}$')
+    plt.axhline(y=np.pi/4, alpha=0.5, color='r', linestyle='--', label=r'$\theta_{1,eq}$')
+    plt.axhline(y=np.pi/2, alpha=0.5, color='r', linestyle='--', label=r'$\theta_{2,eq}$')
+
     plt.legend()
+    plt.xlabel('Tempo (s)')
+    plt.ylabel('Estados')
+    plt.title('Controle Alocação de Polos')
+    plt.grid(True)
     plt.show()
